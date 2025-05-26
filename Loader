@@ -1,27 +1,57 @@
-local mapScripts = {
-    [11468034852] = "https://raw.githubusercontent.com/Ninja974/Fire-Hub-V2/refs/heads/main/Mugen",  -- Mugen
-    [11468075017] = "https://raw.githubusercontent.com/Ninja974/Fire-Hub-V2/refs/heads/main/Dungeonn",  -- Ouwighara
-    [13883059853] = "https://raw.githubusercontent.com/Ninja974/Fire-Hub-V2/refs/heads/main/Map%202%20Priv",  -- Map 2 Private
-    [13883279773] = "https://raw.githubusercontent.com/Ninja974/Fire-Hub-V2/refs/heads/main/Map%201%20Priv",  -- Map 1 Private
-    [17387475546] = "https://raw.githubusercontent.com/Ninja974/Fire-Hub-V2/refs/heads/main/Map%201%20Public",  -- Map 1 Public
-    [17387482786] = "https://raw.githubusercontent.com/Ninja974/Fire-Hub-V2/refs/heads/main/Map%202%20Public"   -- Map 2 Public
-}
+--// SERVICIOS
+local HttpService = game:GetService("HttpService")
+local Analytics = game:GetService("RbxAnalyticsService")
 
--- Get the current map's PlaceId
-local currentPlaceId = game.PlaceId
+--// CONFIGURACIÓN
+local key = "TU-KEY-AQUÍ" -- 🔑 Pegá acá la key generada con ?genkey
+local hwid = Analytics:GetClientId()
+local apiURL = "http://TU-IP-AQUÍ:8000/validate?key=" .. key .. "&hwid=" .. hwid
 
--- Check if the PlaceId matches any of the known map scripts
-if mapScripts[currentPlaceId] then
-    print("Loading script for PlaceId: " .. currentPlaceId)  -- Debugging: Show the PlaceId being loaded
-    local success, result = pcall(function()
-        return game:HttpGet(mapScripts[currentPlaceId] .. "?v=" .. tostring(math.random(1000, 9999)), true)
-    end)
+--// VALIDACIÓN DE LICENCIA
+local isValid = false
+local success, result = pcall(function()
+    return game:HttpGet(apiURL)
+end)
 
-    if success and result then
-        loadstring(result)()
+if success then
+    local data = HttpService:JSONDecode(result)
+    if data.valid then
+        print("🟢 License checked successfully.")
+        isValid = true
     else
-        warn("Failed to load script for PlaceId: " .. currentPlaceId)
+        warn("❌ Access Denied: " .. (data.reason or "Unknown"))
+        game:Shutdown()
     end
 else
-    warn("No script found for this PlaceId!")
+    warn("❌ Validation error. Please contact the seller.")
+    game:Shutdown()
+end
+
+--// SI LA LICENCIA ES VÁLIDA, CARGAMOS EL SCRIPT DEL MAPA
+if isValid then
+    local currentPlaceId = game.PlaceId
+
+    local mapScripts = {
+        [11468034852] = "https://raw.githubusercontent.com/Ninja974/Fire-Hub-V2/refs/heads/main/Mugen",  -- Mugen
+        [11468075017] = "https://raw.githubusercontent.com/Ninja974/Fire-Hub-V2/refs/heads/main/Dungeonn",  -- Ouwighara
+        [13883059853] = "https://raw.githubusercontent.com/Ninja974/Fire-Hub-V2/refs/heads/main/Map%202%20Priv",  -- Map 2 Priv
+        [13883279773] = "https://raw.githubusercontent.com/Ninja974/Fire-Hub-V2/refs/heads/main/Map%201%20Priv",  -- Map 1 Priv
+        [17387475546] = "https://raw.githubusercontent.com/Ninja974/Fire-Hub-V2/refs/heads/main/Map%201%20Public",  -- Map 1 Public
+        [17387482786] = "https://raw.githubusercontent.com/Ninja974/Fire-Hub-V2/refs/heads/main/Map%202%20Public"   -- Map 2 Public
+    }
+
+    if mapScripts[currentPlaceId] then
+        print("Loading Script for PlaceId: " .. currentPlaceId)
+        local ok, mapScript = pcall(function()
+            return game:HttpGet(mapScripts[currentPlaceId] .. "?v=" .. tostring(math.random(1000, 9999)), true)
+        end)
+
+        if ok then
+            loadstring(mapScript)()
+        else
+            warn("⚠️ Error loading map script.")
+        end
+    else
+        warn("⚠️ No script configured for this map.")
     end
+end
